@@ -307,6 +307,6 @@ Released under the [MIT License](LICENSE). See `LICENSE` for details.
 **Lastbench Legends** · Team ID `VTU-QFF-HC-0186` · Tier `Online`
 · Built with ⚛️ Qiskit for the VTU-QFF Hackathon
 
-[⬆ Back to Top](#Lastbench Legends)
+[⬆ Back to Top](#lastbench-legends)
 
 </div>
