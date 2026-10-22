@@ -1,312 +1,194 @@
-<div align="center">
+# QuantumFlow 🚦⚛️
 
-# Lastbench Legends
-
-**VTU-QFF-HC-0186** &nbsp;|&nbsp; Tier: **Online**
-
-</div>
+**Real-Time Quantum-Classical Hybrid Traffic Signal Optimization**  
+*Built for the 2026 Quantum Hackathon*
 
 ---
 
-<div align="center">
+## 1. Problem Statement & Proposed Solution
 
-| | |
-| :--- | :--- |
-| **Team** | Lastbench Legends |
-| **Team ID** | VTU-QFF-HC-0186 |
-| **Tier** | Online |
-| **Repository** | [vtu-hc-lastbench-legends](https://github.com/vtu-qiskit-fall-fest-2026/vtu-hc-lastbench-legends.git) |
-| **Organisation** | [vtu-qiskit-fall-fest-2026](https://github.com/vtu-qiskit-fall-fest-2026) |
-| **Event** | VTU-QFF Hackathon — VTU-Qiskit Fall Fest 2026 |
+### The Urban Traffic Challenge
+Urban traffic congestion leads to extensive driver delays, stop-and-go energy loss, and inefficient roadway utilization. Traditional traffic light controllers primarily rely on:
+- **Fixed-Time Control:** Cycle lengths and green splits remain static regardless of instantaneous queue accumulation.
+- **Local Actuated / Responsive Control:** Adjusts splits locally per intersection but struggles to coordinate phase alignments across arterial corridors simultaneously.
 
-</div>
+### The QuantumFlow Solution
+QuantumFlow formulates the multi-intersection signal timing problem as a **Quadratic Unconstrained Binary Optimization (QUBO)** problem. By mapping candidate green-phase allocations to binary decision variables and penalizing desynchronized corridor progression along arterial grid edges, QuantumFlow executes genuine **Quantum Approximate Optimization Algorithm (QAOA)** circuits on local quantum simulators (`Qiskit Aer`).
 
----
+QuantumFlow benchmarks genuine QAOA execution directly against **Fixed-Time** and **Traffic-Responsive** controllers on **identical simulated traffic snapshots** using a shared, macroscopic traffic evaluation engine.
 
-## 📌 Table of Contents
-
-- [Team Members](#-team-members-github-ids)
-- [Problem Statement](#-problem-statement)
-- [Proposed Solution](#-proposed-solution)
-- [Approach & Architecture](#-approach--architecture)
-- [Tech Stack](#-tech-stack)
-- [Project Structure](#-project-structure)
-- [How to Run](#-how-to-run)
-- [How to Push Code](#-how-to-push-code)
-- [Submission Checklist](#-submission-checklist)
-- [Resources](#-resources)
-- [License](#-license)
+> [!NOTE]
+> **Scientific Honesty & Disclaimer:**
+> - All traffic metrics represent **simulated macroscopic estimates** based on deterministic saturation queue equations ($h = 2.0\text{ s/veh}$, $C = \lfloor g/2\rfloor$).
+> - For $N = 4$ binary variables ($2^4 = 16$ states), **no quantum speedup exists**. Classical enumeration executes in $< 1\text{ ms}$, while QAOA quantum circuit simulation requires $\sim 180\text{–}400\text{ ms}$ due to statevector/shot-sampling simulation overhead.
+> - QuantumFlow demonstrates algorithmic feasibility, Ising Hamiltonian mapping, and fault-resilient hybrid integration without making speculative claims of real-world pollution reduction or quantum advantage at this scale.
 
 ---
 
-## 👥 Team Members (GitHub IDs)
+## 2. Team Structure & Responsibilities
 
-> Members are added to this repository as **collaborators** and must accept the
-> GitHub invitation before they can push. Add your GitHub username below.
-
-| # | Name | GitHub Username | Role |
-| :-- | :--- | :--- | :--- |
-| 1 | _Add your name_ | _your-github-username_ | _Team Lead_ |
-| 2 | _Add your name_ | _your-github-username_ | _Developer_ |
-| 3 | _Add your name_ | _your-github-username_ | _Developer_ |
-
-<!--
-Optional: add a plain list instead of the table above.
-- @username1
-- @username2
--->
+| Role | Primary Modules | Key Responsibilities |
+|---|---|---|
+| **Classical Controller Lead** | `simulator/baseline.py`, `simulator/traffic_simulator.py` | 4-intersection 2x2 grid simulator, fixed-time (30/30) and adaptive responsive split controllers. |
+| **Metrics Engineer** | `metrics/traffic_model.py`, `metrics/metrics.py` | Single source of truth for queue discharge, leftover queues, delay calculations, and percentage reduction vs baseline. |
+| **Quantum Engineer** | `quantum/binary_qubo.py`, `quantum/quantum_solver.py`, `quantum/reference_enumerator.py` | 4-variable QUBO formulation, exact algebraic energy proofs, Qiskit Aer QAOA sampler, and constraint decoding. |
+| **Backend Engineer** | `app.py`, `api/` | Flask REST API, schema validation, timeout guards, test client suite, and non-fabrication error handling. |
+| **Frontend Engineer** | `templates/index.html`, `static/style.css`, `static/dashboard.js` | Interactive dashboard, real-time Plotly charts, density tags, stale input invalidation, and theory documentation. |
 
 ---
 
-## ❓ Problem Statement
-
-<!--
-State the problem you are solving. Be specific: what is broken or missing,
-who experiences it, and why does it matter. Link to the official problem
-statement from the brief if one applies.
--->
-
-**Problem:** _Describe the problem in 2–3 sentences._
-
-**Why it matters:** _Explain the impact or opportunity._
-
-**Track / Category:** _Online / Offline · Track 1 / Track 2 · <domain>_
-
----
-
-## 💡 Proposed Solution
-
-<!--
-Describe your solution. Keep it concrete: the core idea, the user flow, and
-the quantum/ML technique you are applying.
--->
-
-**Solution:** _In 2–3 sentences, describe what you built._
-
-**Key idea:** _The one-line technical summary of your approach._
-
-**Why this works:** _How your approach addresses the problem statement._
-
----
-
-## 🧩 Approach & Architecture
-
-<!--
-Walk through how it works. A simple pipeline diagram in text or Mermaid is ideal.
--->
+## 3. System Architecture & Data Flow
 
 ```mermaid
-flowchart LR
-    A[Input Data] --> B[Preprocessing]
-    B --> C[Quantum Circuit / Model]
-    C --> D[Post-processing]
-    D --> E[Output]
-```
+graph TD
+    UI[Frontend Dashboard<br/>templates/index.html + Plotly] -->|HTTP REST| API[Flask Backend API<br/>app.py]
+    
+    subgraph "Core Data & Evaluation"
+        API --> VAL[Constraint Validators<br/>shared/validators.py]
+        API --> SIM[Traffic Simulator<br/>simulator/traffic_simulator.py]
+        API --> EVAL[Macroscopic Traffic Model<br/>metrics/traffic_model.py]
+    end
 
-1. **Input** — _what data goes in and in what format_
-2. **Preprocessing** — _cleaning, feature extraction, encoding_
-3. **Quantum core** — _the circuit, ansatz, or algorithm used_
-4. **Post-processing** — _decoding, measurement, scoring_
-5. **Output** — _what the user finally gets_
+    subgraph "Optimization Engines"
+        API --> BASE[Fixed-Time Controller<br/>simulator/baseline.py]
+        API --> RESP[Adaptive Responsive Controller<br/>simulator/baseline.py]
+        API --> QUBO[Binary QUBO Formulation<br/>quantum/binary_qubo.py]
+        QUBO --> QAOA[QAOA Quantum Solver<br/>quantum/quantum_solver.py]
+        QAOA --> AER[Local Qiskit Aer Sampler<br/>1024 shots, p=1]
+    end
 
----
-
-## 🛠️ Tech Stack
-
-| Layer | Technology |
-| :--- | :--- |
-| Language | Python 3.11+ |
-| Quantum SDK | Qiskit `>=1.0`, Qiskit Aer, Qiskit Runtime |
-| Optimisation | Qiskit Optimization / COBYLA / SPSA |
-| Simulation | AerSimulator (statevector / noisemodel) |
-| Environment | JupyterLab / VS Code, `venv` |
-| Version control | Git + GitHub |
-
----
-
-## 📁 Project Structure
-
-```text
-vtu-hc-lastbench-legends/
-├── README.md              # This file
-├── requirements.txt       # Python dependencies
-├── pyproject.toml         # Project metadata (optional)
-├── .gitignore
-├── notebooks/             # Jupyter notebooks for experiments
-│   └── exploration.ipynb
-├── src/
-│   ├── __init__.py
-│   ├── circuit.py         # Quantum circuit construction
-│   ├── optimizer.py       # Optimization loop
-│   └── main.py            # Entry point
-├── data/                  # Datasets (use Git LFS for large files)
-├── tests/                 # Unit tests
-│   └── test_circuit.py
-└── docs/                  # Notes, diagrams, reports
+    EVAL --> METRICS[Shared Metrics Evaluator<br/>metrics/metrics.py]
+    METRICS --> API
 ```
 
 ---
 
-## 🚀 How to Run
+## 4. Quick Start & Startup Instructions
 
 ### Prerequisites
+- **Python:** 3.12.4
+- **Operating System:** Windows, macOS, or Linux
+- **Local Virtual Environment:** `.venv`
 
-- Python 3.11 or newer
-- [Git](https://git-scm.com/downloads)
-- A GitHub account (you need collaborator access to this repo)
+### Setup & Launch Commands
 
-### 1. Clone the repository
+```powershell
+# 1. Clone Repository
+git clone https://github.com/Gagan-03C/VTUXIBM.git
+cd VTUXIBM
 
-```bash
-git clone https://github.com/vtu-qiskit-fall-fest-2026/vtu-hc-lastbench-legends.git
-cd vtu-hc-lastbench-legends
-```
+# 2. Activate Virtual Environment (Windows PowerShell)
+.\.venv\Scripts\Activate.ps1
+# On Linux / macOS: source .venv/bin/activate
 
-### 2. Create a virtual environment
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate        # Linux / macOS
-# .venv\Scripts\activate         # Windows (PowerShell)
-```
-
-### 3. Install dependencies
-
-```bash
-pip install --upgrade pip
+# 3. Verify Dependencies (Qiskit 1.2.4, Qiskit Aer 0.14.2, Flask 3.0.3, NumPy 1.26.4)
 pip install -r requirements.txt
+
+# 4. Run Complete Test Suite (428 Tests)
+.venv\Scripts\pytest -v
+
+# 5. Launch Backend Server
+$env:PORT="5000"
+.venv\Scripts\python app.py
 ```
 
-### 4. Run
-
-```bash
-python -m src.main
-```
-
-Or launch the notebook workflow:
-
-```bash
-jupyter lab
-```
-
-### 5. Run the tests
-
-```bash
-pytest -q
-```
+Open **[http://localhost:5000/](http://localhost:5000/)** in your browser to view the interactive dashboard.
 
 ---
 
-## 🔁 How to Push Code
+## 5. REST API Specification
 
-> Full walkthrough: **[Git & Collaboration Handbook](../vtu-hc-guide-git-and-collaboration)** — collaboration
-> workflow, branches, pull requests, reviews and conflict resolution.
+All endpoints communicate via JSON and adhere strictly to [`docs/INTERFACES.md`](docs/INTERFACES.md).
 
-### Configure Git (first time only)
-
-```bash
-git config --global user.name  "Your Name"
-git config --global user.email "you@example.com"
-```
-
-### Everyday workflow
-
-```bash
-# 1. Get the latest changes
-git checkout main
-git pull origin main
-
-# 2. Create a branch for your work
-git checkout -b feature/my-task
-
-# 3. Commit your work
-git add .
-git commit -m "feat: add variational circuit for the search problem"
-
-# 4. Push the branch
-git push -u origin feature/my-task
-
-# 5. Open a Pull Request on GitHub and request a review
-#    https://github.com/vtu-qiskit-fall-fest-2026/vtu-hc-lastbench-legends/compare/main...feature/my-task
-
-# 6. After approval, merge into main
-git checkout main
-git pull origin main
-git branch -d feature/my-task
-```
-
-### Commit message convention
-
-| Prefix | Meaning |
-| :--- | :--- |
-| `feat:` | New feature |
-| `fix:` | Bug fix |
-| `docs:` | Documentation only |
-| `test:` | Adding or fixing tests |
-| `refactor:` | Code restructure, no behaviour change |
-| `chore:` | Build/config/dependency changes |
-
-### Useful commands
-
-```bash
-git status              # what changed
-git log --oneline -10   # recent commits
-git diff                # review changes before committing
-git stash               # shelve changes temporarily
-git pull --rebase       # update your branch on top of main
-```
-
-### Collaborating on the same repo
-
-- **Never push directly to `main`** — open a Pull Request.
-- **Pull before you push** to avoid rejected commits.
-- **Commit often** with clear messages.
-- **Resolve conflicts** locally: `git pull --rebase`, fix the files, then `git add` + `git rebase --continue`.
-- **Ask for a review** before merging — a second pair of eyes catches bugs fast.
+| Method | Endpoint | Description | Sample Payload / Output |
+|---|---|---|---|
+| `GET` | `/` | Web dashboard user interface | HTML document with Plotly visualizations |
+| `GET` | `/api/traffic` | Current 2x2 traffic queue snapshot | `{"status": "ok", "traffic_input": {...}, "total_vehicles": 227}` |
+| `POST` | `/api/traffic` | Update queue counts or set preset scenario | `{"scenario": "heavy", "seed": 42}` or custom queues |
+| `POST` | `/api/optimize/baseline` | Run Fixed-Time controller (30s/30s) | Returns timing plan, metrics, and runtime |
+| `POST` | `/api/optimize/responsive` | Run Adaptive Responsive controller | Returns proportional splits, delay reduction %, metrics |
+| `POST` | `/api/optimize/qaoa` | Run genuine QAOA on Qiskit Aer | Returns measured bitstring, QUBO cost, timing plan, metrics |
+| `GET` | `/api/results` | Historical evaluation log | `{"status": "ok", "count": 25, "history": [...]}` |
 
 ---
 
-## ✅ Submission Checklist
+## 6. Mathematical Traffic Model & Classical Controllers
 
-- [ ] Repository created and **public**
-- [ ] All team members added as **collaborators** and invitations accepted
-- [ ] `README.md` updated with project details, problem statement and solution
-- [ ] Team members listed under [Team Members](#-team-members-github-ids)
-- [ ] `requirements.txt` committed and project runs from a clean clone
-- [ ] Code pushed to `main` and the latest `main` builds successfully
-- [ ] Notebooks committed with **cleared outputs** (or use `nbstrip`)
-- [ ] `README` includes a demo screenshot / video link
-- [ ] Short project summary submitted on the hackathon portal
+### 6.1 Saturation Queue & Delay Physics
+All traffic calculations are centrally evaluated by [`metrics/traffic_model.py`](metrics/traffic_model.py):
+- **Cycle Time:** $T_{cycle} = 60\text{ s}$.
+- **Minimum / Maximum Green:** $15\text{ s} \le g \le 45\text{ s}$.
+- **Saturation Headway:** $h = 2.0\text{ s/veh}$ (Discharge saturation flow $S = 0.5\text{ veh/s}$).
+- **Discharge Capacity:** $C(g) = \lfloor g / 2.0 \rfloor\text{ vehicles}$.
+- **Leftover Queue:** $rem = \max(0, queue - C(g))$.
+- **Accumulated Leftover-Red Delay:** Leftover vehicles endure red delay during opposing phase:
+  $$D_i = rem_{i,ns} \cdot ew_{green} + rem_{i,ew} \cdot ns_{green}$$
+- **Average Waiting Time:**
+  $$W_{avg} = \begin{cases} \frac{D_{total}}{total\_vehicles} & \text{if } total\_vehicles > 0 \\ 0.0 & \text{otherwise} \end{cases}$$
 
----
-
-## 📚 Resources
-
-| Resource | Link |
-| :--- | :--- |
-| 🔁 Git & collaboration handbook | [Git & Collaboration Handbook](../vtu-hc-guide-git-and-collaboration) |
-| ❓ Problem statements, solutions & terms | [Problem Statements, Solutions & Terms](../vtu-hc-guide-problem-and-solution) |
-| 📄 README writing guide | [README Guide & Template](../vtu-hc-guide-readme-template) |
-| ⚛️ Qiskit documentation | https://docs.quantum.ibm.com/ |
-| ⚛️ Qiskit Runtime & primitives | https://quantum.cloud.ibm.com/docs/ |
-| 🧪 Qiskit Aer simulator | https://docs.quantum.ibm.com/guides/simulator |
-| 💻 IBM Quantum Platform | https://quantum.cloud.ibm.com/ |
-| 🎓 Qiskit textbook | https://qiskit.qotlabs.org/learning/ |
-| 📋 GitHub Docs | https://docs.github.com/ |
+### 6.2 Classical Benchmarks
+1. **Fixed-Time Baseline:** Allocates equal $30\text{ s}$ North-South and $30\text{ s}$ East-West green time ($C = 15\text{ veh}$) to all 4 intersections.
+2. **Traffic-Responsive Controller:** Dynamically calculates green splits based on the ratio of NS to EW vehicle queues, bounded strictly within $[15\text{ s}, 45\text{ s}]$:
+   $$g_{ns} = \text{round}\left(60 \cdot \frac{q_{ns}}{q_{ns} + q_{ew}}\right), \quad g_{ew} = 60 - g_{ns}$$
 
 ---
 
-## 📄 License
+## 7. QUBO Formulation & QAOA Architecture
 
-Released under the [MIT License](LICENSE). See `LICENSE` for details.
+### 7.1 Decision Variables
+For the 4-node 2×2 grid (Intersections A, B, C, D), each intersection $i \in \{0, 1, 2, 3\}$ has a single binary decision variable $x_i \in \{0, 1\}$:
+- $x_i = 0$: **Plan 0 (North-South Priority):** $g_{ns} = 45\text{ s}, g_{ew} = 15\text{ s}$ ($C_{ns} = 22, C_{ew} = 7$).
+- $x_i = 1$: **Plan 1 (East-West Priority):** $g_{ns} = 15\text{ s}, g_{ew} = 45\text{ s}$ ($C_{ns} = 7, C_{ew} = 22$).
+
+### 7.2 Objective Function
+$$E(x) = x^T Q x + c_{offset} = \sum_{i=0}^3 D_i(x_i) + \sum_{(u, v) \in E} \gamma_{uv} (x_u - x_v)^2$$
+- **Linear terms (diagonal):** $Q_{ii} = [D_i(1) - D_i(0)] + \sum_{v \in N(i)} \gamma_{iv}$.
+- **Quadratic coupling terms (off-diagonal):** $Q_{uv} = -2\gamma_{uv}$ for grid edges $(A,B), (C,D), (A,C), (B,D)$.
+- **Offset:** $c_{offset} = \sum_{i=0}^3 D_i(0)$.
+- **Exact Equality:** For all $2^4 = 16$ bitstrings, algebraic energy $E(x)$ matches true traffic delay identically ($|E(x) - C_{intended}(x)| = 0.0$).
+
+### 7.3 QAOA Quantum Simulator Pipeline
+- **Quantum Simulator:** `qiskit_aer.primitives.Sampler(run_options={"shots": 1024, "seed": 42})`.
+- **Ansatz:** $p$-layer alternating operator circuit ($U(C, \gamma) U(B, \beta)$).
+- **Classical Optimizer:** `COBYLA` with default `maxiter=50` (or `maxiter=20` in fast demo mode).
+- **Decoding:** The highest-probability measured bitstring $b = b_0 b_1 b_2 b_3$ is decoded into candidate signal plans.
 
 ---
 
-<div align="center">
+## 8. Measured Test Results & Benchmarks
 
-**Lastbench Legends** · Team ID `VTU-QFF-HC-0186` · Tier `Online`
-· Built with ⚛️ Qiskit for the VTU-QFF Hackathon
+Full end-to-end evaluation conducted across preset scenarios ([`scratch/verify_scenarios_e2e.py`](scratch/verify_scenarios_e2e.py)):
 
-[⬆ Back to Top](#lastbench-legends)
+| Scenario | Vehicles | Fixed-Time Delay | Responsive Delay | QAOA Delay | QAOA Bitstring | QAOA Cost | Gap $\Delta E$ | QAOA Runtime |
+|---|---|---|---|---|---|---|---|---|
+| **Light** | 50 veh | 0.0 s | 0.0 s (+0.0%) | 0.0 s (+0.0%) | `0101` | 0.0 | **0.0 s** | 174.9 ms |
+| **Medium** | 177 veh | 1,710.0 s | 1,720.0 s (-0.6%) | 2,460.0 s (-43.9%) | `0001` | 2,460.0 | **0.0 s** | 187.7 ms |
+| **Heavy** | 390 veh | 8,100.0 s | 7,953.0 s (+1.8%) | 8,490.0 s (-4.8%) | `0001` | 8,490.0 | **0.0 s** | 204.5 ms |
+| **Zero** | 0 veh | 0.0 s | 0.0 s (+0.0%) | 0.0 s (+0.0%) | `1001` | 0.0 | **0.0 s** | 112.6 ms |
 
-</div>
+*Observation:* Across all benchmark evaluations, QAOA identified the exact global minimum of the discrete 4-variable QUBO landscape ($\Delta E = 0.0\text{ s}$).
+
+---
+
+## 9. Limitations, Risks & Future Scope
+
+### Limitations
+1. **Coarse Candidate Space:** The current QUBO formulation uses a binary choice ($45/15\text{ s}$ vs $15/45\text{ s}$) per node ($2^4 = 16$ states). While mathematically exact, continuous adaptive controllers have finer granularity ($1\text{ s}$ resolution).
+2. **Simulator Latency:** Simulating quantum circuits on classical CPUs adds $\sim 200\text{ ms}$ overhead compared to classical heuristic evaluations ($< 1\text{ ms}$).
+3. **Macroscopic Simplification:** The model does not simulate vehicle lane-changing, turn pockets, or pedestrian push-buttons.
+
+### Future Scope
+1. **Higher-Resolution QUBO:** Expand each intersection to 2 or 3 binary variables (4 to 8 discrete phase splits per node).
+2. **Physical QPU Validation:** Execute circuits on physical IBM Quantum superconducting hardware (`ibm_brisbane`, `ibm_kyiv`) via Qiskit Runtime Primitives.
+3. **Corridor Scale-up:** Expand from a 2×2 grid (4 nodes, 4 qubits) to an 8×8 grid (64 nodes, 64 qubits), where classical exhaustive search ($2^{64}$ states) is intractable and quantum heuristic optimizers provide meaningful exploration value.
+
+---
+
+## 10. Documentation Index
+
+- [`docs/INTERFACES.md`](docs/INTERFACES.md) — Authoritative API schemas, types, and validation rules.
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — Deep-dive system architecture, modules, and component interactions.
+- [`docs/QUBO.md`](docs/QUBO.md) — Rigorous mathematical derivation of the 4-variable traffic QUBO.
+- [`docs/QUANTUM_HANDOFF.md`](docs/QUANTUM_HANDOFF.md) — Frozen quantum solver signatures, dependency versions, and gap proofs.
+- [`docs/LIVE_DEMO_RECOVERY.md`](docs/LIVE_DEMO_RECOVERY.md) — Live pitch guide, troubleshooting, and emergency recovery runbook.
+- [`docs/DEMO.md`](docs/DEMO.md) — Step-by-step hackathon demonstration guide.
